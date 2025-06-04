@@ -5,10 +5,9 @@
     "description": "Prototype API",
     "version": "1.0.0"
   },
-  "host": "localhost:3000",
+  "host": "machine-test-api.onrender.com",
   "basePath": "/",
   "schemes": [
-    "http",
     "https"
   ],
   "paths": {
@@ -330,6 +329,16 @@
                 "name": "main"
               }
             }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
           }
         }
       }

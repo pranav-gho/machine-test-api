@@ -168,4 +168,19 @@ app.get('/doctors', (req, res) => {
   res.json(result);
 });
 
-app.listen(3000, () => console.log('Server running on http://localhost:3000'));
+app.get("/health", () => ({
+  "health": "ok"
+}))
+
+setTimeout(() => {
+  fetch("https://machine-test-api.onrender.com/health");
+  console.log("Health checking")
+}, 10 * 60 * 1000)
+
+
+app.listen(3000, () => {
+
+  fetch("https://machine-test-api.onrender.com/health");
+  console.log("Health checking")
+  console.log('Server running on http://localhost:3000')
+});
