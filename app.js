@@ -168,9 +168,11 @@ app.get('/doctors', (req, res) => {
   res.json(result);
 });
 
-app.get("/health", () => ({
-  "status": "healthy"
-}))
+app.get("/health", (req, res) => {
+  res.send({
+    "status": "healthy"
+  })
+})
 
 setTimeout(() => {
   fetch("https://machine-test-api.onrender.com/health");
