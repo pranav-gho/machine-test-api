@@ -255,7 +255,7 @@ app.listen(PORT, () => {
     } catch (error) {
       console.error('Health check failed:', error.message);
     }
-  }, 60000);
+  }, 10 * 60 * 1000);
 
   // Initial ping immediately
   (async () => {
