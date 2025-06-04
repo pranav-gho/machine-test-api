@@ -169,7 +169,7 @@ app.get('/doctors', (req, res) => {
 });
 
 app.get("/health", () => ({
-  "health": "ok"
+  "status": "healthy"
 }))
 
 setTimeout(() => {
