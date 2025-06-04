@@ -1,314 +1,156 @@
 const express = require('express');
+const cors = require('cors');
 const { v4: uuidv4 } = require('uuid');
 const swaggerUi = require('swagger-ui-express');
 const swaggerFile = require('./swagger-output.json');
-const cors = require('cors');
+const { doctors, locations, specialities, users } = require('./db');
 
 const app = express();
-app.use(express.json());
 app.use(cors());
+app.use(express.json());
 
-// In-memory DB
-const db = {
-  users: [],
-  doctors: [
-    {
-      id: '1',
-      name: 'Dr. Alice',
-      speciality: 'Cardiology',
-      rating: 4.5,
-      experience: 10,
-      consultationFee: 600,
-      location: 'New York',
-      available: true,
-    },
-    // ... (other doctors omitted for brevity)
-    {
-      id: '15',
-      name: 'Dr. Oscar',
-      speciality: 'Pulmonology',
-      rating: 4.2,
-      experience: 8,
-      consultationFee: 620,
-      location: 'Portland',
-      available: true,
-    },
-  ],
-};
-
-// Swagger UI route
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerFile));
 
-/**
- * User signup
- * @openapi
- * /api/signup:
- *   post:
- *     summary: User signup
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [name, email, password]
- *             properties:
- *               name:
- *                 type: string
- *                 example: John Doe
- *               email:
- *                 type: string
- *                 example: john@example.com
- *               password:
- *                 type: string
- *                 example: password123
- *     responses:
- *       200:
- *         description: Signup successful with user data
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                 user:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: string
- *                     name:
- *                       type: string
- *                     email:
- *                       type: string
- *       400:
- *         description: User already exists
- */
-app.post('/api/signup', (req, res) => {
-  const { name, email, password } = req.body || {};
-  if (!name || !email || !password) {
-    return res.status(400).json({ message: 'Name, email, and password are required.' });
-  }
-  if (db.users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
+// #swagger.tags = ['Auth']
+app.post('/signup', (req, res) => {
+  /* #swagger.summary = 'User Signup' 
+     #swagger.parameters['body'] = {
+       in: 'body',
+       description: 'User signup info',
+       required: true,
+       schema: { $name: "John Doe", $email: "john@example.com", $password: "strongpassword" }
+     }
+     #swagger.responses[201] = {
+       description: 'Signup successful',
+       schema: { message: 'Signup successful', user: { id: 'uuid', name: 'John Doe', email: 'john@example.com', password: 'hashed' } }
+     }
+     #swagger.responses[400] = { description: 'User already exists' }
+  */
+  const { name, email, password } = req.body;
+  const existingUser = users.find(u => u.email === email);
+  if (existingUser) {
     return res.status(400).json({ message: 'User already exists' });
   }
-  const user = { id: uuidv4(), name, email: email.toLowerCase(), password };
-  db.users.push(user);
-  res.json({ message: 'Signup successful', user: { id: user.id, name: user.name, email: user.email } });
+  const newUser = { id: uuidv4(), name, email, password };
+  users.push(newUser);
+  res.status(201).json({ message: 'Signup successful', user: newUser });
 });
 
-/**
- * User login
- * @openapi
- * /api/login:
- *   post:
- *     summary: User login
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [email, password]
- *             properties:
- *               email:
- *                 type: string
- *                 example: john@example.com
- *               password:
- *                 type: string
- *                 example: password123
- *     responses:
- *       200:
- *         description: Login successful with user data
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                 user:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: string
- *                     name:
- *                       type: string
- *                     email:
- *                       type: string
- *       401:
- *         description: Invalid credentials
- */
-app.post('/api/login', (req, res) => {
-  const { email, password } = req.body || {};
-  if (!email || !password) {
-    return res.status(400).json({ message: 'Email and password are required.' });
-  }
-  const user = db.users.find(u => u.email === email.toLowerCase() && u.password === password);
-  if (!user) {
-    return res.status(401).json({ message: 'Invalid credentials' });
-  }
-  res.json({ message: 'Login successful', user: { id: user.id, name: user.name, email: user.email } });
+// #swagger.tags = ['Auth']
+app.post('/login', (req, res) => {
+  /* #swagger.summary = 'User Login'
+     #swagger.parameters['body'] = {
+       in: 'body',
+       description: 'User login info',
+       required: true,
+       schema: { $email: "john@example.com", $password: "strongpassword" }
+     }
+     #swagger.responses[200] = {
+       description: 'Login successful',
+       schema: { message: 'Login successful', user: { id: 'uuid', name: 'John Doe', email: 'john@example.com' } }
+     }
+     #swagger.responses[401] = { description: 'Invalid credentials' }
+  */
+  const { email, password } = req.body;
+  const user = users.find(u => u.email === email && u.password === password);
+  if (!user) return res.status(401).json({ message: 'Invalid credentials' });
+  res.json({ message: 'Login successful', user });
 });
 
-/**
- * Doctor search with filters and sorting
- * @openapi
- * /api/doctors:
- *   get:
- *     summary: Doctor search with filters and sorting
- *     parameters:
- *       - in: query
- *         name: speciality
- *         schema:
- *           type: string
- *         description: Filter by speciality
- *       - in: query
- *         name: location
- *         schema:
- *           type: string
- *         description: Filter by location
- *       - in: query
- *         name: minRating
- *         schema:
- *           type: number
- *         description: Minimum rating filter
- *       - in: query
- *         name: minExperience
- *         schema:
- *           type: integer
- *         description: Minimum years of experience filter
- *       - in: query
- *         name: maxFee
- *         schema:
- *           type: integer
- *         description: Maximum consultation fee filter
- *       - in: query
- *         name: available
- *         schema:
- *           type: boolean
- *         description: Availability filter
- *       - in: query
- *         name: sortBy
- *         schema:
- *           type: string
- *           enum: [rating, experience, consultationFee, name]
- *         description: Field to sort by (default: rating)
- *       - in: query
- *         name: order
- *         schema:
- *           type: string
- *           enum: [asc, desc]
- *         description: Sort order (default: desc)
- *     responses:
- *       200:
- *         description: Array of doctors matching filters
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   id:
- *                     type: string
- *                   name:
- *                     type: string
- *                   speciality:
- *                     type: string
- *                   rating:
- *                     type: number
- *                   experience:
- *                     type: integer
- *                   consultationFee:
- *                     type: integer
- *                   location:
- *                     type: string
- *                   available:
- *                     type: boolean
- */
-app.get('/api/doctors', (req, res) => {
-  const {
-    speciality,
-    location,
-    minRating,
-    minExperience,
-    maxFee,
-    available,
-    sortBy = 'rating',
-    order = 'desc',
-  } = req.query;
+// #swagger.tags = ['Master Data']
+app.get('/locations', (req, res) => {
+  /* #swagger.summary = 'Get All Locations'
+     #swagger.responses[200] = {
+       description: 'List of locations',
+       schema: [{ id: '1', name: 'New York' }]
+     }
+  */
+  res.json(locations);
+});
 
-  let results = db.doctors;
+// #swagger.tags = ['Master Data']
+app.get('/specialities', (req, res) => {
+  /* #swagger.summary = 'Get All Specialities'
+     #swagger.responses[200] = {
+       description: 'List of specialities',
+       schema: [{ id: '1', name: 'Cardiology' }]
+     }
+  */
+  res.json(specialities);
+});
 
-  if (speciality) {
-    results = results.filter(d => d.speciality.toLowerCase() === speciality.toLowerCase());
+app.get('/doctors', (req, res) => {
+  /* #swagger.summary = 'Search Doctors with filters including name'
+     #swagger.parameters['location'] = {
+       in: 'query',
+       description: 'Filter by location',
+       required: false,
+       type: 'string',
+       example: 'New York'
+     }
+     #swagger.parameters['speciality'] = {
+       in: 'query',
+       description: 'Filter by speciality',
+       required: false,
+       type: 'string',
+       example: 'Cardiology'
+     }
+     #swagger.parameters['available'] = {
+       in: 'query',
+       description: 'Filter by availability (true/false)',
+       required: false,
+       type: 'string',
+       enum: ['true', 'false'],
+       example: 'true'
+     }
+     #swagger.parameters['sortBy'] = {
+       in: 'query',
+       description: 'Sort by rating, consultationFee, or experience',
+       required: false,
+       type: 'string',
+       enum: ['rating', 'consultationFee', 'experience'],
+       example: 'rating'
+     }
+     #swagger.parameters['name'] = {
+       in: 'query',
+       description: 'Search doctors by name (partial, case-insensitive)',
+       required: false,
+       type: 'string',
+       example: 'Alice'
+     }
+     #swagger.responses[200] = {
+       description: 'List of doctors matching filters',
+       schema: [{
+         id: '1',
+         name: 'Dr. Alice',
+         speciality: 'Cardiology',
+         rating: 4.5,
+         experience: 10,
+         consultationFee: 600,
+         location: 'New York',
+         available: true
+       }]
+     }
+  */
+  let { location, speciality, available, sortBy, name } = req.query;
+  let result = [...doctors];
+
+  if (location) result = result.filter(doc => doc.location === location);
+  if (speciality) result = result.filter(doc => doc.speciality === speciality);
+  if (available) result = result.filter(doc => doc.available.toString() === available);
+  if (name) {
+    const nameLower = name.toLowerCase();
+    result = result.filter(doc => doc.name.toLowerCase().includes(nameLower));
   }
 
-  if (location) {
-    results = results.filter(d => d.location.toLowerCase() === location.toLowerCase());
-  }
-
-  if (minRating && !isNaN(parseFloat(minRating))) {
-    results = results.filter(d => d.rating >= parseFloat(minRating));
-  }
-
-  if (minExperience && !isNaN(parseInt(minExperience))) {
-    results = results.filter(d => d.experience >= parseInt(minExperience));
-  }
-
-  if (maxFee && !isNaN(parseInt(maxFee))) {
-    results = results.filter(d => d.consultationFee <= parseInt(maxFee));
-  }
-
-  if (available !== undefined) {
-    if (available === 'true' || available === 'false') {
-      const boolVal = available === 'true';
-      results = results.filter(d => d.available === boolVal);
+  if (sortBy) {
+    const validSorts = ['rating', 'consultationFee', 'experience'];
+    if (validSorts.includes(sortBy)) {
+      result.sort((a, b) => b[sortBy] - a[sortBy]);
     }
   }
 
-  const validSortFields = ['rating', 'experience', 'consultationFee', 'name'];
-  const sortField = validSortFields.includes(sortBy) ? sortBy : 'rating';
-  const sortOrder = order === 'asc' ? 1 : -1;
-
-  results.sort((a, b) => {
-    const aVal = a[sortField];
-    const bVal = b[sortField];
-    if (typeof aVal === 'string' && typeof bVal === 'string') {
-      return aVal.localeCompare(bVal) * sortOrder;
-    }
-    return (aVal - bVal) * sortOrder;
-  });
-
-  res.json(results);
+  res.json(result);
 });
 
-/**
- * Health check endpoint
- * @openapi
- * /api/health:
- *   get:
- *     summary: Health check endpoint
- *     responses:
- *       200:
- *         description: Status OK with timestamp
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                 timestamp:
- *                   type: string
- */
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-// Start server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
-});
+app.listen(3000, () => console.log('Server running on http://localhost:3000'));
