@@ -88,6 +88,76 @@ const db = {
       consultationFee: 450,
       location: 'San Francisco',
       available: false
+    },
+    {
+      id: '9',
+      name: 'Dr. Ian',
+      speciality: 'Gastroenterology',
+      rating: 4.4,
+      experience: 13,
+      consultationFee: 650,
+      location: 'Denver',
+      available: true
+    },
+    {
+      id: '10',
+      name: 'Dr. Julia',
+      speciality: 'Endocrinology',
+      rating: 4.9,
+      experience: 14,
+      consultationFee: 900,
+      location: 'Miami',
+      available: true
+    },
+    {
+      id: '11',
+      name: 'Dr. Kevin',
+      speciality: 'Psychiatry',
+      rating: 4.1,
+      experience: 10,
+      consultationFee: 550,
+      location: 'Atlanta',
+      available: false
+    },
+    {
+      id: '12',
+      name: 'Dr. Laura',
+      speciality: 'Ophthalmology',
+      rating: 4.6,
+      experience: 12,
+      consultationFee: 480,
+      location: 'San Diego',
+      available: true
+    },
+    {
+      id: '13',
+      name: 'Dr. Mark',
+      speciality: 'Urology',
+      rating: 4.3,
+      experience: 9,
+      consultationFee: 530,
+      location: 'Dallas',
+      available: true
+    },
+    {
+      id: '14',
+      name: 'Dr. Nina',
+      speciality: 'Rheumatology',
+      rating: 4.7,
+      experience: 11,
+      consultationFee: 670,
+      location: 'Philadelphia',
+      available: false
+    },
+    {
+      id: '15',
+      name: 'Dr. Oscar',
+      speciality: 'Pulmonology',
+      rating: 4.2,
+      experience: 8,
+      consultationFee: 620,
+      location: 'Portland',
+      available: true
     }
   ]
 };
@@ -166,8 +236,35 @@ app.get('/api/doctors', (req, res) => {
   res.json(results);
 });
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // Start server
 const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`);
+
+  // Ping the health endpoint every 1 minute
+  setInterval(async () => {
+    try {
+      const res = await fetch(`http://localhost:${PORT}/api/health`);
+      const data = await res.json();
+      console.log(`Health check at ${new Date().toISOString()}:`, data);
+    } catch (error) {
+      console.error('Health check failed:', error.message);
+    }
+  }, 60000);
+
+  // Initial ping immediately
+  (async () => {
+    try {
+      const res = await fetch(`http://localhost:${PORT}/api/health`);
+      const data = await res.json();
+      console.log(`Initial health check at ${new Date().toISOString()}:`, data);
+    } catch (error) {
+      console.error('Initial health check failed:', error.message);
+    }
+  })();
 });
