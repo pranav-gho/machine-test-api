@@ -79,8 +79,9 @@ app.get('/specialities', (req, res) => {
   res.json(specialities);
 });
 
+// #swagger.tags = ['Doctors']
 app.get('/doctors', (req, res) => {
-  /* #swagger.summary = 'Search Doctors with filters including name'
+  /* #swagger.summary = 'Search Doctors with filters including name and sorting'
      #swagger.parameters['location'] = {
        in: 'query',
        description: 'Filter by location',
@@ -111,6 +112,14 @@ app.get('/doctors', (req, res) => {
        enum: ['rating', 'consultationFee', 'experience'],
        example: 'rating'
      }
+     #swagger.parameters['sortOrder'] = {
+       in: 'query',
+       description: 'Sort order asc or desc',
+       required: false,
+       type: 'string',
+       enum: ['asc', 'desc'],
+       example: 'desc'
+     }
      #swagger.parameters['name'] = {
        in: 'query',
        description: 'Search doctors by name (partial, case-insensitive)',
@@ -132,7 +141,7 @@ app.get('/doctors', (req, res) => {
        }]
      }
   */
-  let { location, speciality, available, sortBy, name } = req.query;
+  let { location, speciality, available, sortBy, sortOrder, name } = req.query;
   let result = [...doctors];
 
   if (location) result = result.filter(doc => doc.location === location);
@@ -146,7 +155,13 @@ app.get('/doctors', (req, res) => {
   if (sortBy) {
     const validSorts = ['rating', 'consultationFee', 'experience'];
     if (validSorts.includes(sortBy)) {
-      result.sort((a, b) => b[sortBy] - a[sortBy]);
+      // default to descending order
+      const order = sortOrder === 'asc' ? 1 : -1;
+      result.sort((a, b) => {
+        if (a[sortBy] < b[sortBy]) return -1 * order;
+        if (a[sortBy] > b[sortBy]) return 1 * order;
+        return 0;
+      });
     }
   }
 

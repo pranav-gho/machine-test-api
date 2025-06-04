@@ -219,7 +219,7 @@
     },
     "/doctors": {
       "get": {
-        "summary": "Search Doctors with filters including name",
+        "summary": "Search Doctors with filters including name and sorting",
         "description": "",
         "parameters": [
           {
@@ -262,6 +262,18 @@
               "experience"
             ],
             "example": "rating"
+          },
+          {
+            "name": "sortOrder",
+            "in": "query",
+            "description": "Sort order asc or desc",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "asc",
+              "desc"
+            ],
+            "example": "desc"
           },
           {
             "name": "name",
